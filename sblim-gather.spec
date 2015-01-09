@@ -6,20 +6,24 @@
 Summary:	SBLIM Performance Data Gatherer and Provider
 Summary(pl.UTF-8):	Narzędzie SBLIM do zbierania i dostarczania danych o wydajności
 Name:		sblim-gather
-Version:	2.2.5
+Version:	2.2.9
 Release:	1
 License:	Eclipse Public License v1.0
 Group:		Libraries
 Source0:	http://downloads.sourceforge.net/sblim/%{name}-%{version}.tar.bz2
-# Source0-md5:	471708912d35681f76a11fd128056783
+# Source0-md5:	9525751f776fe3579cd17a5d00e67f00
 URL:		http://sblim.sourceforge.net/
 BuildRequires:	libvirt-devel
 BuildRequires:	sblim-cmpi-devel
 BuildRequires:	sblim-cmpi-base-devel
 BuildRequires:	sysfsutils-devel
+BuildRequires:	xmlto
 Requires:	%{name}-libs = %{version}-%{release}
 Requires:	sblim-cmpi-base
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
+
+# hiccup symbol is provided by binary
+%define		skip_post_check_so	libgather.so.*
 
 %description
 The purpose of this package is to implement the DMTF CIM Metrics Model
@@ -94,8 +98,8 @@ rm -rf $RPM_BUILD_ROOT
 	DESTDIR=$RPM_BUILD_ROOT \
 	initdir=/etc/rc.d/init.d
 
-# library not meant for development
-%{__rm} $RPM_BUILD_ROOT%{_libdir}/libOSBase_MetricUtil.la
+# common library for modules, noinst header
+%{__rm} $RPM_BUILD_ROOT%{_libdir}/libOSBase_MetricUtil.{so,la}
 # modules
 %{__rm} $RPM_BUILD_ROOT%{_libdir}/cmpi/libOSBase_*.la \
 	$RPM_BUILD_ROOT%{_libdir}/gather/*plug/*.la
@@ -109,15 +113,21 @@ cat >$RPM_BUILD_ROOT/usr/lib/tmpfiles.d/sblim-gather.conf <<EOF
 d /var/run/gather 0755 root root -
 EOF
 
+# packaged as %doc
+%{__rm} -r $RPM_BUILD_ROOT%{_docdir}/%{name}-%{version}
+
 %clean
 rm -rf $RPM_BUILD_ROOT
+
+%post	-p /sbin/ldconfig
+%postun	-p /sbin/ldconfig
 
 %post	libs -p /sbin/ldconfig
 %postun	libs -p /sbin/ldconfig
 
 %files
 %defattr(644,root,root,755)
-%doc AUTHORS COPYING ChangeLog NEWS README
+%doc AUTHORS COPYING ChangeLog NEWS README README.TEST reposd2csv.pl plugin/*.readme
 %attr(754,root,root) /etc/rc.d/init.d/gatherer
 %config(noreplace) %verify(not md5 mtime size) %{_sysconfdir}/gatherd.conf
 %config(noreplace) %verify(not md5 mtime size) %{_sysconfdir}/reposd.conf
@@ -126,8 +136,9 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_bindir}/reposdump
 %attr(755,root,root) %{_sbindir}/gatherd
 %attr(755,root,root) %{_sbindir}/reposd
-# common library for modules(?)
-%attr(755,root,root) %{_libdir}/libOSBase_MetricUtil.so
+# common library for modules
+%attr(755,root,root) %{_libdir}/libOSBase_MetricUtil.so.*.*.*
+%attr(755,root,root) %ghost %{_libdir}/libOSBase_MetricUtil.so.0
 # CMPI providers
 %attr(755,root,root) %{_libdir}/cmpi/libOSBase_Metric*Provider.so
 # gather plugins
@@ -146,6 +157,13 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_datadir}/sblim-gather/stop_gathering.sh
 %dir /var/run/gather
 /usr/lib/tmpfiles.d/sblim-gather.conf
+%{_mandir}/man1/reposdump.1*
+%{_mandir}/man5/gatherd.conf.5*
+%{_mandir}/man5/reposd.conf.5*
+%{_mandir}/man8/gatherctl.8*
+%{_mandir}/man8/gatherd.8*
+%{_mandir}/man8/reposctl.8*
+%{_mandir}/man8/reposd.8*
 
 %files libs
 %defattr(644,root,root,755)
