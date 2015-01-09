@@ -94,7 +94,7 @@ Biblioteki statyczne SBLIM Gatherera.
 %install
 rm -rf $RPM_BUILD_ROOT
 
-%{__make} install \
+%{__make} -j1 install \
 	DESTDIR=$RPM_BUILD_ROOT \
 	initdir=/etc/rc.d/init.d
 
